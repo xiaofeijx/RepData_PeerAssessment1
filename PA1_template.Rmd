@@ -8,13 +8,17 @@ output:
 ## Loading and preprocessing the data
 
 ```{r}
+library(knitr)
+options(scipen=5,digits=3)
+opts_chunk$set(message=FALSE,warning=FALSE)
+
 #unzip the zip file and  get the file path
 filepath <- unzip("activity.zip")
 
 #read the data
 activity <- read.csv(filepath,header=T)
+#
 
-#opts_chunk$set(echo=FALSE)
 ```
 
 
@@ -53,15 +57,18 @@ ggplot(data=meanstep,aes(x=interval,y=meanstepday))+geom_line(group=1)+
 2.  Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 ```{r}
 maxstepindex <- which.max(meanstep$meanstepday)
-#meanstep[maxstepindex,1]
+maxsetptime <- as.character(meanstep[maxstepindex,1])
+maxsetptime <- paste(substr(maxsetptime,1,1),substr(maxsetptime,2,3),sep=":")
+
 ```
-from the graph we can see that the man/woman start to move at 5:00am and takes the most steps around `r meanstep[maxstepindex,1]`; stop move at around 24:00pm.
+from the graph we can see that the man/woman start to move at 5:00 and takes the most steps at `r maxsetptime` interval; stop move at around 24:00.
 
 ## Imputing missing values
 1.  Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
 ```{r}
 #sum(complete.cases(activity))
 numofmissing <- sum(is.na(activity$steps))
+numofmissing
 ```
 2.  Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
 ```{r}
@@ -75,7 +82,7 @@ in the dataset there are `r numofmissing` missing rows.I just use the average st
 
 3.  Create a new dataset that is equal to the original dataset but with the missing data filled in.
 ```{r}
-new_activity <- join_activity[,c(2,3,5)]
+new_activity <- join_activity[,c("imputstep","date","interval")]
 ```
 
 4.	Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment?  
@@ -99,11 +106,13 @@ new_activity$date<-strptime(as.character(new_activity$date),"%Y-%m-%d")
 library(lubridate)
 new_activity <- mutate(new_activity,wd = wday(date),weekend = as.factor((wd==1| wd ==6)))
 levels(new_activity$weekend) <- c("weekday","weekend")
+#dplyr did not support POSIXct so i will remove it
+new_activity$date <- as.character(new_activity$date)
 ```
 
 2.  Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
 ```{r}
-activity_bydayinter <- group_by(new_activity[,c(2,3,5)],weekend,interval) %>%
+activity_bydayinter <- group_by(new_activity,weekend,interval) %>%
   summarise(meanstep = mean(imputstep))
 
 ggplot(data=activity_bydayinter,aes(x=interval,y=meanstep))+geom_line()+
